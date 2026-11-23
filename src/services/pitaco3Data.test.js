@@ -1,4 +1,4 @@
-import { pitaco3Device, buildSignalSeries, buildSessionComparatives, decimate }
+import { pitaco3Device, buildSignalSeries, buildSessionComparatives, decimate, localDayBoundary }
   from "./pitaco3Data";
 
 const stage = {
@@ -54,4 +54,12 @@ test("downsampling retains the last point", () => {
   const selected = decimate(data, 1000);
   expect(selected.length).toBeLessThan(1002);
   expect(selected[selected.length - 1].t).toBe(3999);
+});
+
+test("local calendar dates become UTC bounds for MongoDB filtering", () => {
+  const day = "2026-11-22";
+  expect(localDayBoundary(day)).toBe(new Date(2026, 10, 22, 0, 0, 0, 0).toISOString());
+  expect(localDayBoundary(day, true))
+    .toBe(new Date(2026, 10, 22, 23, 59, 59, 999).toISOString());
+  expect(() => localDayBoundary("2026-02-30")).toThrow();
 });
