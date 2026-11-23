@@ -76,3 +76,18 @@ export function buildSessionComparatives(stages, summaries, phase = "", level = 
       };
     });
 }
+
+/**
+ * Convert a browser-local calendar day to an absolute UTC endpoint.
+ * The Azure API compares against MongoDB's UTC created_at timestamps.
+ * A stage at 00:58Z on Nov 23 belongs to Nov 22 for a user in UTC-03.
+ */
+export function localDayBoundary(value, endOfDay = false) {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(year, month - 1, day,
+    endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0, endOfDay ? 999 : 0);
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 ||
+      date.getDate() !== day) throw new Error("Data inválida.");
+  return date.toISOString();
+}
