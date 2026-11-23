@@ -57,7 +57,7 @@ export default function ResultPage() {
 
   return (
     <Box>
-      <Typography variant="h2" sx={{ fontSize: 20, fontWeight: "bold", mt: 1 }}>
+      <Typography variant="h2" sx={{ fontSize: 20, fontWeight: "bold", color: "#11192A", mt: 1 }}>
         Resultados na plataforma
       </Typography>
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 3 }}>

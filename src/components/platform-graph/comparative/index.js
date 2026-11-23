@@ -1,31 +1,19 @@
 import React from "react";
-import { Box, Typography } from "@mui/material";
-import { CartesianGrid, Line, LineChart, Legend, ResponsiveContainer,
-  Tooltip, XAxis, YAxis } from "recharts";
+import { Box } from "@mui/material";
+import SharedLineChart from "../SharedLineChart";
 
-// All data must come from the API; never render randomized sample values.
-const PlatformGraphComparative = ({ tableLegend_Y, graphData = [], viewType }) => {
-  if (!graphData.some((d) => d.value !== null && d.value !== undefined)) {
-    return <Typography color="text.secondary">Sem medições reais para os filtros selecionados.</Typography>;
-  }
-  return (
-    <Box sx={{ height: 420, minWidth: 0 }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={graphData} margin={{ top: 15, right: 40, left: 25, bottom: 18 }}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" />
-          <YAxis width={75} label={{ value: tableLegend_Y, angle: -90,
-            position: "insideLeft" }} domain={["auto", "auto"]} />
-          <Tooltip />
-          <Legend />
-          <Line type="linear" dataKey="value" name="Paciente selecionado"
-            stroke="#2563eb" connectNulls={false} isAnimationActive={false} />
-          <Line type="linear" dataKey="cohortMedian" name="Mediana do grupo autorizado"
-            stroke="#0f766e" strokeDasharray="5 5" connectNulls={false}
-            isAnimationActive={false} />
-        </LineChart>
-      </ResponsiveContainer>
-    </Box>
-  );
-};
+// Same presentation engine as PITACO 3.0 charts.
+// Cohort series is omitted for sessions with insufficient authorized data.
+const PlatformGraphComparative = ({ tableLegend_Y, graphData = [] }) => (
+  <Box sx={{ backgroundColor: "#fff", color: "#11192A", mt: 2 }}>
+    <SharedLineChart
+      data={graphData} xKey="name" height={420} yAxisLabel={tableLegend_Y}
+      lines={[
+        { key: "value", label: "Paciente selecionado", color: "#2563eb" },
+        { key: "cohortMedian", label: "Mediana do grupo autorizado", color: "#0f766e" }
+      ]}
+      emptyLabel="Sem medições reais para os filtros selecionados."
+    />
+  </Box>
+);
 export default PlatformGraphComparative;

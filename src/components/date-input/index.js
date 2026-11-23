@@ -49,7 +49,7 @@ const DateInput = ({ title, handleDateChangeCallBack, disabled = false }) => {
   const [date, setDate] = React.useState(new Date());
   return (
     <Box sx={{ display: "flex", flexDirection: "column" }}>
-      <Typography>{title}</Typography>
+      <Typography sx={{ color: "#11192A" }}>{title}</Typography>
       <CssTextField
         size="small"
         InputProps={{
@@ -62,6 +62,14 @@ const DateInput = ({ title, handleDateChangeCallBack, disabled = false }) => {
         //label=""
         type="date"
         disabled={disabled}
+        sx={{
+          backgroundColor: "#fff",
+          "& .MuiInputBase-input": {
+            color: "#11192A",
+            WebkitTextFillColor: "#11192A"
+          },
+          "& .MuiInputBase-root": { backgroundColor: "#fff" }
+        }}
         onChange={(event) => {
           setDate(event.target.value);
           handleDateChangeCallBack(event.target.value);
