@@ -1,60 +1,40 @@
 import axios from "axios";
 import moment from "moment";
+import { BaseUrl } from "../../providers/_config";
+import { getTokenParameters } from "../../providers/sessionStorage";
 
-import { BaseUrl } from '../../providers/_config';
-import { getTokenParameters } from '../../providers/sessionStorage';
-
-const fetchResults = async (patientId, device, visualization) => {
-  const gameToken = getTokenParameters('gameToken');
-
-  try {
-    const response = await axios.get(
-      `${BaseUrl()}/pacients/${patientId}/plataforms/statistics?sort=asc&gameDevice=${device}`,
-      {
-        headers: { gameToken },
+export const fetchResults = async (patientId, device, visualization, dates = {}) => {
+  const gameToken = getTokenParameters("gameToken");
+  const response = await axios.get(
+    `${BaseUrl()}/pacients/${encodeURIComponent(patientId)}/plataforms/statistics`,
+    {
+      headers: { GameToken: gameToken },
+      params: {
+        sort: "asc", devices: device,
+        ...(dates.dataIni ? { dataIni: dates.dataIni } : {}),
+        ...(dates.dataFim ? { dataFim: dates.dataFim } : {})
       }
-    );
-
-    return response.data.data.map((patientResult) => ({
-      date: moment(patientResult.playFinish).format("DD/MM/YY"),
-      value: patientResult[visualization],
-    }));
-  } catch (error) {
-    console.log(error);
-    return [];
-  }
+    }
+  );
+  if (!response.data || response.data.success !== true ||
+      !Array.isArray(response.data.data)) throw new Error("Resposta de resultados inválida.");
+  return response.data.data.map((r) => ({
+    date: r.playFinish ? moment(r.playFinish).format("DD/MM/YY") : "",
+    value: typeof r[visualization] === "number" ? r[visualization] : null
+  }));
 };
 
-const fetchPointsAndLevelsAndPlays = async (patientId) => {
-  const gameToken = getTokenParameters('gameToken');
-
-  try {
-    const response = await axios.get(
-      `${BaseUrl()}/pacients/${patientId}`,
-      {
-        headers: { gameToken },
-      }
-    );
-
-    const data = response.data.data;
-
-    return [
-      {
-        value: data.accumulatedScore,
-        title: "Pontuação acumulada",
-      },
-      {
-        value: data.unlockedLevels,
-        title: "Níveis desbloqueados",
-      },
-      {
-        value: data.playSessionsDone,
-        title: "Seções jogadas",
-      },
-    ];
-  } catch (error) {
-    console.log(error);
-  }
+export const fetchPointsAndLevelsAndPlays = async (patientId) => {
+  const gameToken = getTokenParameters("gameToken");
+  const response = await axios.get(
+    `${BaseUrl()}/pacients/${encodeURIComponent(patientId)}`,
+    { headers: { GameToken: gameToken } }
+  );
+  const data = response.data && response.data.data;
+  if (!data) throw new Error("Paciente não encontrado.");
+  return [
+    { value: data.accumulatedScore ?? "—", title: "Pontuação acumulada" },
+    { value: data.unlockedLevels ?? "—", title: "Níveis desbloqueados" },
+    { value: data.playSessionsDone ?? "—", title: "Seções jogadas" }
+  ];
 };
-
-export { fetchResults, fetchPointsAndLevelsAndPlays };
