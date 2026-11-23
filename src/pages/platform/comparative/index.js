@@ -6,6 +6,7 @@ import { useMyContext } from "../../../providers/MyContext";
 import { getPlatformComparative } from "../../../services/api/platform";
 import PlatformGraphComparative from "../../../components/platform-graph/comparative";
 import Pitaco3ComparativePanel from "../../../components/pitaco3/Pitaco3ComparativePanel";
+import { inputSx } from "../../../components/pitaco3/controlStyles";
 
 const visuals = [
   { key: "expiratory_peak", value: "Pico Expiratório" },
@@ -85,10 +86,10 @@ export default function PlatformComparative() {
             </Box>
             <TextField label="Idade inicial" size="small" type="number"
               value={initialAge} onChange={(e) => setInitialAge(e.target.value)}
-              inputProps={{ min: 1, max: 120 }} sx={{ width: 110 }} />
+              inputProps={{ min: 1, max: 120 }} sx={{ ...inputSx, width: 110, minWidth: 110 }} />
             <TextField label="Idade final" size="small" type="number"
               value={finalAge} onChange={(e) => setFinalAge(e.target.value)}
-              inputProps={{ min: 1, max: 120 }} sx={{ width: 110 }} />
+              inputProps={{ min: 1, max: 120 }} sx={{ ...inputSx, width: 110, minWidth: 110 }} />
             <Box sx={{ width: 190 }}>
               <SelectComponent title="Visualização" initialKey={visualization}
                 handleChangeCallBack={setVisualization} items={visuals} />
