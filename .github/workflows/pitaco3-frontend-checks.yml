@@ -1,0 +1,45 @@
+name: PITACO3 frontend build and tests (no deploy)
+
+on:
+  push:
+    branches:
+      - feature/pitaco3-health-infocharts
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/pitaco3-frontend-checks.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: npm
+      - name: Install legacy dependencies
+        run: npm install --legacy-peer-deps
+      - name: Set API config
+        run: cp src/providers/_config.template.js src/providers/_config.js
+      - name: Unit tests (non-interactive)
+        env:
+          CI: 'true'
+        run: npm run test -- --watchAll=false
+      - name: Build production SPA (no deployment)
+        env:
+          CI: 'true'
+          PUBLIC_URL: '/'
+          REACT_APP_BASE_URL_I_BLUE_IT: ${{ vars.REACT_APP_BASE_URL_I_BLUE_IT }}
+        run: |
+          if [ -z "$REACT_APP_BASE_URL_I_BLUE_IT" ]; then
+            echo "::error::Configure REACT_APP_BASE_URL_I_BLUE_IT to the Azure backend /api URL"
+            exit 1
+          fi
+          npm run build
+          test -f build/index.html

@@ -1,158 +1,97 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState } from "react";
+import { Box, Button, Typography } from "@mui/material";
 import DeviceSelect from "../../../components/device-select";
 import DateInterval from "../../../components/date-interval";
-import { Box, Button, Typography } from "@mui/material";
 import SelectComponent from "../../../components/select";
-import { makeStyles } from "@mui/styles";
-import {
-  fetchPointsAndLevelsAndPlays,
-  fetchResults,
-} from "../../../services/api/result";
-import { useMyContext } from "../../../providers/MyContext";
 import CalibrationGraph from "../../../components/calibration-graph";
 import MicroCard from "../../../components/micro-card";
+import Pitaco3ResultsPanel from "../../../components/pitaco3/Pitaco3ResultsPanel";
+import { useMyContext } from "../../../providers/MyContext";
+import { fetchResults, fetchPointsAndLevelsAndPlays } from "../../../services/api/result";
 
-
-const useStyles = makeStyles((theme) => ({
-  container: {
-    display: "flex",
-    justifyContent: "flex-start",
-    flexFlow: "wrap",
-    marginBottom: 50,
-    rowGap: 15,
-    marginTop: 30,
-  },
-  button: {
-    height: 40,
-    marginTop: "auto",
-    backgroundColor: "#1e2b48",
-    color: "#fff",
-    "&:hover": {
-      backgroundColor: "#1e2b48",
-      opacity: 0.7,
-      color: "white",
-    },
-  },
-}));
-
-const ResultPage = () => {
-  const classes = useStyles();
+export default function ResultPage() {
   const context = useMyContext();
-
-  const [warning, setWarning] = useState('Selecione os filtros desejados.');
-  const [resultData, setResultData] = useState([]);
   const [device, setDevice] = useState("Pitaco");
-  const [visualization, setVisualization] = useState("result");
-  const [visualizationAfterRequest, setVisualizationAfterRequest] = useState("result");
-  const [, setStartDate] = useState();
-  const [, setFinalDate] = useState();
-  const [microCardsValues, setMicroCardsValues] = useState([
-    { value: 0, title: "Pontuação acumulada" },
-    { value: 0, title: "Níveis desbloqueados" },
-    { value: 0, title: "Seções jogadas" },
-  ]);
-
-  const initialState = () => {
-    setWarning('Selecione os filtros desejados.');
-    setResultData([]);
-    setDevice("Pitaco");
-    setVisualization("result");
-    setVisualizationAfterRequest("result");
-    setStartDate();
-    setFinalDate();
-  }
-
-  const fetchMicroCardsValues = async () => {
-    context.setLoading(true);
-    const pointsAndLevelsAndPlaysApiResult = await fetchPointsAndLevelsAndPlays(context.patientId);
-    setMicroCardsValues(pointsAndLevelsAndPlaysApiResult || []);
-    context.setLoading(false);
-  };
-
-  const handleFilterButton = async () => {
-    context.setLoading(true);
-    const apiResponse = await fetchResults(
-      context.patientId,
-      device,
-      visualization
-    );
-    if (!apiResponse.length) {
-      context.addNotification("error", 'Não existe histórico para os filtros selecionados.');
-      setWarning('Não existe histórico para os filtros selecionados.');
-    }
-    setResultData(apiResponse);
-    setVisualizationAfterRequest(visualization);
-    context.setLoading(false);
-  };
+  const [visualization, setVisualization] = useState("score");
+  const [shown, setShown] = useState("score");
+  const [dataIni, setDataIni] = useState("");
+  const [dataFim, setDataFim] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
+  const [resultData, setResultData] = useState([]);
+  const [warning, setWarning] = useState("Selecione os filtros desejados.");
+  const [cards, setCards] = useState([]);
 
   useEffect(() => {
-    if (context.patientId) {
-      fetchMicroCardsValues();
-      initialState();
-    }
+    let alive = true;
+    setResultData([]);
+    setWarning("Selecione os filtros desejados.");
+    setDevice("Pitaco");
+    if (!context.patientId) return () => { alive = false; };
+    fetchPointsAndLevelsAndPlays(context.patientId)
+      .then((values) => { if (alive) setCards(values); })
+      .catch((err) => { if (alive) context.addNotification("error", err.message); });
+    return () => { alive = false; };
   }, [context.patientId]);
 
+  async function apply() {
+    if (!context.patientId) return;
+    if (device === "Pitaco 3.0") {
+      setReloadKey((key) => key + 1);
+      return;
+    }
+    context.setLoading(true);
+    try {
+      const rows = await fetchResults(context.patientId, device, visualization, { dataIni, dataFim });
+      setResultData(rows);
+      setShown(visualization);
+      setWarning(rows.length ? "" : "Não existe histórico para os filtros selecionados.");
+    } catch (err) {
+      setResultData([]);
+      setWarning(err.message || "Não foi possível consultar os resultados.");
+      context.addNotification("error", err.message || "Erro na consulta.");
+    } finally {
+      context.setLoading(false);
+    }
+  }
+
   return (
-    <>
-      <Typography variant="h2" sx={{ fontSize: 20, fontWeight: "bold", letterSpacing: "1px", marginBottom: 1, marginTop: 1 }}>
+    <Box>
+      <Typography variant="h2" sx={{ fontSize: 20, fontWeight: "bold", mt: 1 }}>
         Resultados na plataforma
       </Typography>
-      <Box sx={{ marginTop: 4, display: "flex", flexWrap: "wrap" }}>
-        {microCardsValues.map((microCardValue, index) => (
-          <MicroCard
-            key={`ResultPage${index}`}
-            title={microCardValue.title}
-            value={microCardValue.value}
-          />
-        ))}
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 3 }}>
+        {cards.map((item) => <MicroCard key={item.title} title={item.title} value={item.value} />)}
       </Box>
-
-      <Box className={classes.container}>
-        <DeviceSelect device={device} setDevice={setDevice} />
-        <Box sx={{ width: 200, marginRight: 2 }}>
-          <SelectComponent
-            handleChangeCallBack={setVisualization}
-            title="Visualização"
-            items={[
-              { key: "result", value: "Pontuação" },
-              { key: "maxExpFlow", value: "Pico Expiratório" },
-              { key: "maxInsFlow", value: "Pico Inspiratório" },
-              { key: "scoreRatio", value: "Razão" },
-            ]}
-            initialKey={visualization}
-          />
-        </Box>
-        <Box sx={{ marginRight: 2 }}>
-          <DateInterval
-            handleStartDateChangeCallBack={setStartDate}
-            handleFinalDateChangeCallBack={setFinalDate}
-          />
-        </Box>
-        <Button
-          className={classes.button}
-          variant="contained"
-          size="large"
-          onClick={handleFilterButton}
-        >
-          Filtrar
-        </Button>
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mt: 3, mb: 3, alignItems: "end" }}>
+        <DeviceSelect device={device} setDevice={(next) => {
+          setDevice(next); setResultData([]);
+        }} />
+        {device !== "Pitaco 3.0" && (
+          <Box sx={{ width: 200 }}>
+            <SelectComponent title="Visualização" initialKey={visualization}
+              handleChangeCallBack={setVisualization}
+              items={[
+                { key: "score", value: "Pontuação" },
+                { key: "maxExpFlow", value: "Pico Expiratório" },
+                { key: "maxInsFlow", value: "Pico Inspiratório" },
+                { key: "scoreRatio", value: "Razão" }
+              ]} />
+          </Box>
+        )}
+        <DateInterval handleStartDateChangeCallBack={setDataIni}
+          handleFinalDateChangeCallBack={setDataFim} />
+        <Button variant="contained" onClick={apply} disabled={!context.patientId}
+          sx={{ bgcolor: "#1e2b48", height: 40 }}>Filtrar</Button>
       </Box>
-      {(!resultData.length) ? (
-        <Typography
-          sx={{ opacity: 0.5 }}
-          variant="subtitle1"
-        >
-          {warning}
-        </Typography>
+      {device === "Pitaco 3.0" ? (
+        <Pitaco3ResultsPanel patientId={context.patientId}
+          dataIni={dataIni} dataFim={dataFim} reloadKey={reloadKey} />
+      ) : resultData.length ? (
+        <CalibrationGraph data={resultData} exercise={shown} />
       ) : (
-        <CalibrationGraph
-          data={resultData}
-          exercise={visualizationAfterRequest}
-        />
+        <Typography color="text.secondary">{warning}</Typography>
       )}
-    </>
+    </Box>
   );
-};
-
-export default ResultPage;
+}

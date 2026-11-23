@@ -1,0 +1,78 @@
+// Pure adaptations for charts. All filters are presentation-only: Atlas is unchanged.
+const num = (v) => typeof v === "number" && Number.isFinite(v) ? v : null;
+
+export function pitaco3Device(document) {
+  return (document && Array.isArray(document.flowDataDevices)
+    ? document.flowDataDevices : []).find((d) => d.deviceName === "Pitaco 3.0") || null;
+}
+function seconds(sample, origin, zero) {
+  const date = Date.parse(sample.timestamp);
+  if (Number.isFinite(date) && Number.isFinite(origin)) return (date - origin) / 1000;
+  if (num(sample.deviceTimeMs) !== null) return (sample.deviceTimeMs - zero) / 1000;
+  return null;
+}
+function points(samples, session, fieldNames, accepted) {
+  if (!Array.isArray(samples)) return [];
+  const start = Date.parse(session.playStart);
+  const zero = (samples.find((s) => num(s.deviceTimeMs) !== null) || {}).deviceTimeMs || 0;
+  return samples.map((s, index) => {
+    const good = !accepted || accepted(s);
+    const mapped = { t: seconds(s, start, zero), seq: s.seq || index };
+    fieldNames.forEach((key) => { mapped[key] = good ? num(s[key]) : null; });
+    return mapped;
+  }).filter((x) => x.t !== null);
+}
+export function buildSignalSeries(document, stage, onlyApproved = false) {
+  const device = pitaco3Device(document);
+  if (!device) return { flow: [], bpm: [], spo2: [], ppg: [], rawCount: 0 };
+  const ok = (s) => s.contactConfirmed === true && s.g1Approved === true;
+  const validBpm = (s) => !onlyApproved || ok(s);
+  const validSpo2 = (s) => !onlyApproved ||
+    (ok(s) && s.isDemonstration === true);
+  // In raw PPG, there is no g1Approved: require contact and no recorded SQI reason.
+  const validRaw = (s) => !onlyApproved ||
+    (s.contact === true && s.sqiReason === 0);
+  const ppg = points(device.ppgRawData, stage, ["red", "ir"], validRaw);
+  return {
+    flow: points(device.flowData, stage, ["flowValue"]),
+    bpm: points(device.bpmData, stage, ["bpm"], validBpm),
+    spo2: points(device.spo2Data, stage, ["spo2Percent"], validSpo2),
+    ppg: decimate(ppg, 2000),
+    rawCount: ppg.length
+  };
+}
+export function decimate(rows, target = 2000) {
+  if (rows.length <= target) return rows;
+  const step = Math.ceil(rows.length / target);
+  const out = rows.filter((_, i) => i % step === 0);
+  if (out[out.length - 1] !== rows[rows.length - 1]) out.push(rows[rows.length - 1]);
+  return out;
+}
+export function buildSessionComparatives(stages, summaries, phase = "", level = "") {
+  const byId = new Map((summaries || []).map((s) =>
+    [String(s.flowDataDevicesId), s]));
+  return (stages || [])
+    .filter((s) => (phase === "" || Number(s.phase) === Number(phase)) &&
+      (level === "" || Number(s.level) === Number(level)))
+    .sort((a, b) => Date.parse(a.playStart) - Date.parse(b.playStart))
+    .map((stage, i) => {
+      const device = (stage.flowDataDevicesValues || [])
+        .find((d) => d.deviceName === "Pitaco 3.0");
+      const summary = byId.get(String(stage.flowDataDevicesId));
+      return {
+        name: `E${i + 1}`,
+        date: stage.playStart ? new Date(stage.playStart).toLocaleString("pt-BR") : "",
+        phase: stage.phase, level: stage.level,
+        maxExpFlow: device ? num(device.maxFlowValue) : null,
+        maxInsFlow: device ? num(device.minFlowValue) : null,
+        bpm: summary && summary.metrics && summary.metrics.bpm
+          ? num(summary.metrics.bpm.mean) : null,
+        spo2: summary && summary.metrics && summary.metrics.spo2Demo
+          ? num(summary.metrics.spo2Demo.mean) : null,
+        bpmCoverage: summary && summary.metrics && summary.metrics.bpm
+          ? num(summary.metrics.bpm.coverageRatio) : null,
+        spo2Coverage: summary && summary.metrics && summary.metrics.spo2Demo
+          ? num(summary.metrics.spo2Demo.coverageRatio) : null
+      };
+    });
+}
