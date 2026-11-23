@@ -6,6 +6,7 @@ on:
       - feature/pitaco3-health-infocharts
   pull_request:
     paths:
+      - 'docs/MARCO_04_ENCERRAMENTO.md'
       - 'src/**'
       - 'package.json'
       - 'package-lock.json'
