@@ -52,3 +52,17 @@ Uma observação de texto aparece diretamente abaixo de cada gráfico com faixa.
   comportamento com dados de pacientes reais no Azure.
 
 Nenhuma alteração foi feita nos endpoints ou modelos do backend.
+
+## Revisão de UX e desempenho (filtros e legendas)
+
+- **Inputs:** Fase, Nível e Qualidade das amostras usam o mesmo `SelectComponent` controlado dos demais filtros do site. Datas continuam no `DateInterval`.
+- **Legendas:** títulos informam a métrica; legenda Recharts aparece só com duas ou mais séries (ex.: RED/IR, paciente/coorte). A referência fixa aparece numa linha compacta sob o gráfico, sem avisos repetidos ou links externos no painel.
+- **DEMO:** a identificação `SpO₂ (DEMO)` continua visível; as fontes e justificativas da faixa ficam neste documento e em `pitaco3References.js`, não repetidas em cada sessão.
+- **Animação:** `CalibrationGraph` legado usa `AreaChart/Area` com animação padrão. O `SharedLineChart` novo usa `ComposedChart/Line`; antes todas as animações estavam desligadas. Agora até 500 pontos ganham transição curta (320 ms); acima disso as curvas são desenhadas sem animação para não comprometer a interação.
+- **Dados brutos:** fluxo e PPG usam decimação min/max por blocos de até 1200 pontos *apenas na visualização*, preservando extremos, endpoints e exemplos de lacunas. O MongoDB e o retorno HTTP não são alterados.
+- **Troca de execução:** cache de até cinco documentos fisiológicos por paciente evita requisições repetidas de uma execução anteriormente selecionada. Ao mudar de paciente, o cache é descartado.
+- **Limitação importante:** transferir uma execução extensa pela rede continua levando tempo. Este ajuste reduz principalmente processamento/desenho no navegador; não substitui um endpoint paginado ou de visualização downsampled caso o volume de sessões cresça.
+
+### Checagens de regressão
+
+`npm run test -- --watchAll=false` cobre duração da animação, faixas fixas, preservação de extremos e lacunas na decimação e compatibilidade dos adaptadores. Revalidar visualmente com conta de teste o histórico, a seleção de dispositivo e as curvas ao trocar entre execuções.
