@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState } from "react";
 import { Box, Button, Typography } from "@mui/material";
 import DeviceSelect from "../../../components/device-select";
