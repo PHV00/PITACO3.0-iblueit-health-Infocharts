@@ -49,7 +49,7 @@ const DateInput = ({ title, handleDateChangeCallBack, disabled = false }) => {
   const [date, setDate] = React.useState(new Date());
   return (
     <Box sx={{ display: "flex", flexDirection: "column" }}>
-      <Typography>{title}</Typography>
+      <Typography sx={{ color: "#11192A" }}>{title}</Typography>
       <CssTextField
         size="small"
         InputProps={{
