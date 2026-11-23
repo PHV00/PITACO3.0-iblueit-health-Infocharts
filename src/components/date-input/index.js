@@ -62,6 +62,14 @@ const DateInput = ({ title, handleDateChangeCallBack, disabled = false }) => {
         //label=""
         type="date"
         disabled={disabled}
+        sx={{
+          backgroundColor: "#fff",
+          "& .MuiInputBase-input": {
+            color: "#11192A",
+            WebkitTextFillColor: "#11192A"
+          },
+          "& .MuiInputBase-root": { backgroundColor: "#fff" }
+        }}
         onChange={(event) => {
           setDate(event.target.value);
           handleDateChangeCallBack(event.target.value);
