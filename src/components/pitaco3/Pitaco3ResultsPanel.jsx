@@ -1,7 +1,8 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useMemo, useState } from "react";
-import { Box, Button, Checkbox, FormControlLabel, Grid, MenuItem, Select,
-  Typography, TextField, CircularProgress } from "@mui/material";
+import { Box, Button, Checkbox, FormControlLabel, Grid,
+  Typography, CircularProgress } from "@mui/material";
+import SelectComponent from "../select";
 import { getPitaco3History, getPitaco3Flow } from "../../services/api/pitaco3";
 import { buildSignalSeries } from "../../services/pitaco3Data";
 import { SignalChart } from "./SignalChart";
@@ -22,9 +23,7 @@ export default function Pitaco3ResultsPanel({ patientId, dataIni, dataFim, reloa
   const [error, setError] = useState("");
   const [visible, setVisible] = useState(["flow", "bpm", "spo2", "ppg"]);
   const [onlyApproved, setOnlyApproved] = useState(false);
-  const [showReference, setShowReference] = useState(false);
-  const [bpmReference, setBpmReference] = useState("");
-  const [spo2Reference, setSpo2Reference] = useState("");
+  const [showReference, setShowReference] = useState(true);
 
   useEffect(() => {
     let alive = true;
@@ -61,33 +60,23 @@ export default function Pitaco3ResultsPanel({ patientId, dataIni, dataFim, reloa
     [document, stage, onlyApproved]);
   const toggle = (key) => setVisible((previous) => previous.includes(key)
     ? previous.filter((v) => v !== key) : [...previous, key]);
-  const referenceFor = (key) => {
-    const input = key === "bpm" ? bpmReference : key === "spo2" ? spo2Reference : "";
-    return showReference && input !== "" && Number.isFinite(Number(input))
-      ? Number(input) : null;
-  };
 
   if (!patientId) return <Typography>Selecione um paciente para consultar os resultados.</Typography>;
 
   return (
-    <Box sx={{ mt: 3 }}>
+    <Box sx={{ mt: 3, color: "#11192A" }}>
       <Typography variant="h6" sx={{ mb: 1 }}>Sinais da execução — PITACO 3.0</Typography>
       <Typography variant="body2" sx={{ mb: 2 }}>
         Os registros são experimentais. A escolha dos filtros não modifica os dados no Atlas.
       </Typography>
       {loadingHistory ? <CircularProgress size={26} /> : (
         <Box sx={{ maxWidth: 650, mb: 2 }}>
-          <Typography variant="subtitle2">Execução</Typography>
-          <Select fullWidth size="small" value={stageId}
-            displayEmpty onChange={(e) => setStageId(e.target.value)}>
-            {!stages.length && <MenuItem value="">Nenhuma execução encontrada</MenuItem>}
-            {stages.map((s) => (
-              <MenuItem key={String(s._id)} value={String(s._id)}>
-                {s.playStart ? new Date(s.playStart).toLocaleString("pt-BR") : "Data indisponível"}
-                {" — Fase "}{s.phase}{" / Nível "}{s.level}
-              </MenuItem>
-            ))}
-          </Select>
+          <SelectComponent title="Execução" initialKey={stageId}
+            handleChangeCallBack={setStageId}
+            items={stages.length ? stages.map((s) => ({
+              key: String(s._id),
+              value: `${s.playStart ? new Date(s.playStart).toLocaleString("pt-BR") : "Data indisponível"} — Fase ${s.phase} / Nível ${s.level}`
+            })) : [{ key: "", value: "Nenhuma execução encontrada" }]} />
         </Box>
       )}
       {stage && (
@@ -97,7 +86,8 @@ export default function Pitaco3ResultsPanel({ patientId, dataIni, dataFim, reloa
             ? Number(stage.duration).toFixed(1) + " s" : "—"}
         </Typography>
       )}
-      <Box sx={{ border: "1px solid #ddd", borderRadius: 2, p: 2, mb: 2 }}>
+      <Box sx={{ backgroundColor: "#fff", color: "#11192A",
+        border: "1px solid #dce3ec", borderRadius: 2, p: 2, mb: 2 }}>
         <Typography variant="subtitle2">Sinais a exibir</Typography>
         <Button size="small" onClick={() => setVisible(signals.map(([key]) => key))}>
           Mostrar todos
@@ -121,15 +111,11 @@ export default function Pitaco3ResultsPanel({ patientId, dataIni, dataFim, reloa
         </Typography>
         <FormControlLabel control={<Checkbox checked={showReference}
           onChange={(e) => setShowReference(e.target.checked)} />}
-          label="Mostrar linhas de referência configuradas (não clínicas)" />
-        {showReference && (
-          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mt: 1 }}>
-            <TextField label="Referência BPM" size="small" type="number"
-              value={bpmReference} onChange={(e) => setBpmReference(e.target.value)} />
-            <TextField label="Referência SpO₂ DEMO (%)" size="small" type="number"
-              value={spo2Reference} onChange={(e) => setSpo2Reference(e.target.value)} />
-          </Box>
-        )}
+          label="Exibir faixas didáticas fixas: BPM 60–100 em repouso e SpO₂ 95–100% (oxímetros validados)" />
+        <Typography variant="caption" sx={{ display: "block", color: "#825e12" }}>
+          Essas faixas são apenas comparações ilustrativas e não limites de segurança.
+          Durante exercício, os valores dependem do paciente; a SpO₂ DEMO não é calibrada.
+        </Typography>
       </Box>
       {error && <Typography color="error" role="alert">{error}</Typography>}
       {loadingSignals && <CircularProgress size={26} />}
@@ -137,9 +123,9 @@ export default function Pitaco3ResultsPanel({ patientId, dataIni, dataFim, reloa
         <>
           {visible.includes("flow") && <SignalChart type="flow" data={series.flow} />}
           {visible.includes("bpm") && <SignalChart type="bpm" data={series.bpm}
-            reference={referenceFor("bpm")} />}
+            showReference={showReference} />}
           {visible.includes("spo2") && <SignalChart type="spo2" data={series.spo2}
-            reference={referenceFor("spo2")} />}
+            showReference={showReference} />}
           {visible.includes("ppg") && <SignalChart type="ppg" data={series.ppg} />}
           {series.rawCount > series.ppg.length && (
             <Typography variant="caption">
