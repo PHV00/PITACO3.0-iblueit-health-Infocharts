@@ -1,6 +1,7 @@
 import axios from "axios";
 import { BaseUrl } from "../../providers/_config";
 import { getTokenParameters } from "../../providers/sessionStorage";
+import { localDayBoundary } from "../pitaco3Data";
 
 const headers = () => ({ GameToken: getTokenParameters("gameToken") });
 const data = (response) => {
@@ -14,7 +15,11 @@ const data = (response) => {
 export async function getPitaco3Stages(patientId, filters = {}) {
   const response = await axios.get(
     `${BaseUrl()}/pacients/${encodeURIComponent(patientId)}/plataforms`,
-    { headers: headers(), params: { devices: "Pitaco 3.0", ...filters } }
+    { headers: headers(), params: {
+      devices: "Pitaco 3.0", ...filters,
+      ...(filters.dataIni ? { dataIni: localDayBoundary(filters.dataIni) } : {}),
+      ...(filters.dataFim ? { dataFim: localDayBoundary(filters.dataFim, true) } : {})
+    } }
   );
   return data(response);
 }
