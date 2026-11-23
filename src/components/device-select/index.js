@@ -1,22 +1,17 @@
 import React from "react";
+import { Box } from "@mui/material";
 import SelectComponent from "../select";
-import {Box} from "@mui/material";
 
-const DeviceSelect = ({device, setDevice}) => {
-    return (
-        <Box sx={{ width: 200, marginRight: 2 }}>
-            <SelectComponent
-                handleChangeCallBack={setDevice}
-                title="Dispositivo"
-                items={[
-                    { key: "Pitaco", value: "Pitaco" },
-                    { key: "Mano", value: "Manovacuômetro" },
-                    { key: "Cinta", value: "Cinta" },
-                ]}
-                initialKey={device}
-            />
-        </Box>
-    )
-}
-
-export default DeviceSelect
+const DeviceSelect = ({ device, setDevice }) => (
+  <Box sx={{ width: 200, marginRight: 2 }}>
+    <SelectComponent title="Dispositivo" initialKey={device}
+      handleChangeCallBack={setDevice}
+      items={[
+        { key: "Pitaco", value: "Pitaco" },
+        { key: "Pitaco 3.0", value: "Pitaco 3.0" },
+        { key: "Mano", value: "Manovacuômetro" },
+        { key: "Cinta", value: "Cinta" }
+      ]} />
+  </Box>
+);
+export default DeviceSelect;
