@@ -50,7 +50,10 @@ export default function Pitaco3ResultsPanel({ patientId, dataIni, dataFim, reloa
   useEffect(() => {
     let alive = true;
     setDocument(null);
-    if (!stage || !stage.flowDataDevicesId) return () => { alive = false; };
+    if (!stage || !stage.flowDataDevicesId) {
+      setLoadingSignals(false);
+      return () => { alive = false; };
+    }
     const id = String(stage.flowDataDevicesId);
     const cache = flowCache.current;
     if (cache.has(id)) {
