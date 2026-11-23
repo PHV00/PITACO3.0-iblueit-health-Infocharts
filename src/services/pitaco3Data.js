@@ -34,19 +34,53 @@ export function buildSignalSeries(document, stage, onlyApproved = false) {
     (s.contact === true && s.sqiReason === 0);
   const ppg = points(device.ppgRawData, stage, ["red", "ir"], validRaw);
   return {
-    flow: points(device.flowData, stage, ["flowValue"]),
+    flow: decimate(points(device.flowData, stage, ["flowValue"]), 1200, ["flowValue"]),
     bpm: points(device.bpmData, stage, ["bpm"], validBpm),
     spo2: points(device.spo2Data, stage, ["spo2Percent"], validSpo2),
-    ppg: decimate(ppg, 2000),
+    ppg: decimate(ppg, 1200, ["red", "ir"]),
     rawCount: ppg.length
   };
 }
-export function decimate(rows, target = 2000) {
-  if (rows.length <= target) return rows;
-  const step = Math.ceil(rows.length / target);
-  const out = rows.filter((_, i) => i % step === 0);
-  if (out[out.length - 1] !== rows[rows.length - 1]) out.push(rows[rows.length - 1]);
-  return out;
+/**
+ * Min/max bucket decimation for visualisation only; the source remains unmodified.
+ * Preserve endpoints, extrema and at least one invalid sample per bucket so that
+ * null gaps do not silently become valid continuous traces.
+ */
+export function decimate(rows, target = 1200, fields) {
+  if (!Array.isArray(rows) || rows.length <= target || target < 10) return rows;
+  const keys = (fields && fields.length ? fields : Object.keys(rows[0] || {})
+    .filter((key) => key !== "t" && key !== "seq"));
+  if (!keys.length) {
+    const step = Math.ceil(rows.length / Math.max(target - 1, 1));
+    const out = rows.filter((_, index) => index % step === 0);
+    if (out[out.length - 1] !== rows[rows.length - 1]) out.push(rows[rows.length - 1]);
+    return out;
+  }
+  const perBucket = 3 + 2 * keys.length; // first, last, first invalid, extrema by series
+  const buckets = Math.max(1, Math.floor((target - 2) / perBucket));
+  const selected = new Set([0, rows.length - 1]);
+  const interior = rows.length - 2;
+  for (let bucket = 0; bucket < buckets; bucket++) {
+    const start = 1 + Math.floor(bucket * interior / buckets);
+    const end = 1 + Math.floor((bucket + 1) * interior / buckets);
+    if (start >= end) continue;
+    selected.add(start); selected.add(end - 1);
+    for (const key of keys) {
+      let low = Infinity, high = -Infinity, lowIndex = -1, highIndex = -1;
+      for (let i = start; i < end; i++) {
+        const value = rows[i][key];
+        if (typeof value !== "number" || !Number.isFinite(value)) continue;
+        if (value < low) { low = value; lowIndex = i; }
+        if (value > high) { high = value; highIndex = i; }
+      }
+      if (lowIndex !== -1) selected.add(lowIndex);
+      if (highIndex !== -1) selected.add(highIndex);
+    }
+    const invalidIndex = Array.from({ length: end - start }, (_, k) => start + k)
+      .find((i) => keys.every((key) => rows[i][key] == null));
+    if (invalidIndex !== undefined) selected.add(invalidIndex);
+  }
+  return Array.from(selected).sort((a, b) => a - b).map((index) => rows[index]);
 }
 export function buildSessionComparatives(stages, summaries, phase = "", level = "") {
   const byId = new Map((summaries || []).map((s) =>

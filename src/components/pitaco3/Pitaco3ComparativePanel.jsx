@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { Box, Button, Checkbox, FormControlLabel, TextField,
+import { Box, Button, Checkbox, FormControlLabel,
   Typography, CircularProgress } from "@mui/material";
+import SelectComponent from "../select";
 import SharedLineChart from "../platform-graph/SharedLineChart";
-import { inputSx } from "./controlStyles";
 import { educationalReferenceFor } from "../../services/pitaco3References";
 import { getPitaco3History, getPitaco3SummaryHistory } from "../../services/api/pitaco3";
 import { buildSessionComparatives } from "../../services/pitaco3Data";
@@ -10,9 +10,9 @@ import { buildSessionComparatives } from "../../services/pitaco3Data";
 const ink = "#11192A";
 const items = [
   { key: "maxExpFlow", title: "Pico expiratório", unit: "L/min", color: "#1d4ed8" },
-  { key: "bpm", title: "BPM médio — estimativas tecnicamente aceitas",
+  { key: "bpm", title: "Frequência cardíaca média",
     unit: "bpm", color: "#dc2626" },
-  { key: "spo2", title: "SpO₂ média — DEMO não calibrada",
+  { key: "spo2", title: "SpO₂ média (DEMO)",
     unit: "%", color: "#0d9488" }
 ];
 function ComparativeChart({ item, data, showReference }) {
@@ -45,21 +45,9 @@ function ComparativeChart({ item, data, showReference }) {
         height={290} reference={reference} tooltipContent={tooltipContent}
         emptyLabel="Sem estimativas reais disponíveis para esta comparação." />
       {reference && (
-        <Box sx={{ mt: 1 }}>
-          <Typography variant="body2" sx={{ color: ink, fontWeight: 600 }}>
-            {reference.label} — exemplo fixo
-          </Typography>
-          <Typography variant="caption" sx={{ color: "#825e12" }}>
-            {reference.caution} Fonte:{" "}
-            <a href={reference.url} target="_blank" rel="noopener noreferrer">
-              {reference.source}
-            </a>.
-          </Typography>
-        </Box>
-      )}
-      {item.key === "spo2" && !reference && (
-        <Typography variant="caption" sx={{ color: "#825e12" }}>
-          SpO₂ DEMO: não calibrada, sem interpretação clínica.
+        <Typography variant="caption" sx={{ color: "#75580f", display: "block", mt: 0.75 }}>
+          Faixa de referência: {item.key === "bpm"
+            ? "60–100 bpm (repouso)" : "95–100% (SpO₂)"}
         </Typography>
       )}
     </Box>
@@ -99,35 +87,38 @@ export default function Pitaco3ComparativePanel({ patientId }) {
   return (
     <Box sx={{ mt: 2, color: ink }}>
       <Typography variant="body2" sx={{ mb: 2, color: ink }}>
-        Comparação entre execuções do paciente selecionado. Selecione a mesma fase
-        e nível para uma análise mais comparável.
+        Compare execuções por fase e nível.
       </Typography>
       <Box component="form" onSubmit={apply} sx={{
         display: "flex", flexWrap: "wrap", gap: 2, alignItems: "center", mb: 2
       }}>
-        <TextField label="Fase (opcional)" size="small" type="number"
-          sx={inputSx} value={phase} inputProps={{ min: 0, step: 1 }}
-          onChange={(e) => setPhase(e.target.value)} />
-        <TextField label="Nível (opcional)" size="small" type="number"
-          sx={inputSx} value={level} inputProps={{ min: 0, step: 1 }}
-          onChange={(e) => setLevel(e.target.value)} />
+        <Box sx={{ width: 170 }}>
+          <SelectComponent title="Fase" initialKey={phase}
+            handleChangeCallBack={setPhase}
+            items={[{ key: "", value: "Todas as fases" },
+              ...[1, 2, 3].map((n) => ({ key: String(n), value: `Fase ${n}` }))]} />
+        </Box>
+        <Box sx={{ width: 170 }}>
+          <SelectComponent title="Nível" initialKey={level}
+            handleChangeCallBack={setLevel}
+            items={[{ key: "", value: "Todos os níveis" },
+              ...Array.from({ length: 9 }, (_, i) => ({
+                key: String(i + 1), value: `Nível ${i + 1}`
+              }))]} />
+        </Box>
         <Button type="submit" variant="contained" disabled={!patientId || loading}
           sx={{ bgcolor: "#1e2b48" }}>Comparar</Button>
       </Box>
       <FormControlLabel sx={{ color: ink }}
         control={<Checkbox checked={showReference}
           onChange={(e) => setShowReference(e.target.checked)} />}
-        label="Exibir faixas didáticas fixas de BPM (repouso) e SpO₂ (oxímetro validado)" />
-      <Typography variant="caption" sx={{ color: "#825e12", display: "block", mb: 2 }}>
-        Não são limites de segurança durante exercícios nem uma avaliação clínica;
-        a SpO₂ do PITACO 3.0 é experimental (DEMO).
-      </Typography>
+        label="Exibir faixas de referência" />
       {error && <Typography color="error" role="alert">{error}</Typography>}
       {loading && <CircularProgress size={26} />}
       {!loading && rows.length > 0 && (
         <>
           <Typography variant="caption" sx={{ color: ink, display: "block", mb: 2 }}>
-            {rows.length} execuções exibidas · medições reais recuperadas da API
+            {rows.length} execuções · uma medição resumida por execução
           </Typography>
           {items.map((item) => (
             <ComparativeChart key={item.key} item={item} data={rows}

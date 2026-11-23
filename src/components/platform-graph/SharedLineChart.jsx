@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Typography } from "@mui/material";
+import { shouldAnimateChart, CHART_ANIMATION_MS } from "../../services/chartPresentation";
 import {
   ComposedChart, CartesianGrid, Legend, Line, ReferenceArea, ResponsiveContainer,
   Tooltip, XAxis, YAxis
@@ -10,7 +11,7 @@ const validNumber = (value) => typeof value === "number" && Number.isFinite(valu
 
 // Shared Recharts presentation for legacy cohort, PITACO 3.0 stage and historical
 // physiology. Keep source data outside the chart; never synthesize values.
-export default function SharedLineChart({
+function SharedLineChart({
   data = [], lines = [], xKey = "name", numericXAxis = false,
   height = 310, yAxisLabel, reference = null, tooltipContent, emptyLabel
 }) {
@@ -58,7 +59,7 @@ export default function SharedLineChart({
             contentStyle={{ color: INK, backgroundColor: "#fff", borderColor: "#dce3ec" }}
             labelStyle={{ color: INK }}
             itemStyle={{ color: INK }} />
-          <Legend wrapperStyle={{ color: INK }} />
+          {lines.length > 1 && <Legend wrapperStyle={{ color: INK }} />}
           {reference && (
             <ReferenceArea y1={reference.lower} y2={reference.upper}
               stroke="#a77c17" strokeDasharray="4 4"
@@ -69,10 +70,14 @@ export default function SharedLineChart({
             <Line key={line.key} type="linear" dataKey={line.key}
               name={line.label} stroke={line.color || "#2563eb"}
               dot={false} activeDot={{ r: 4 }} strokeWidth={1.8}
-              isAnimationActive={false} connectNulls={false} />
+              isAnimationActive={shouldAnimateChart(data.length)}
+              animationDuration={CHART_ANIMATION_MS} animationEasing="ease-out"
+              connectNulls={false} />
           ))}
         </ComposedChart>
       </ResponsiveContainer>
     </Box>
   );
 }
+
+export default React.memo(SharedLineChart);

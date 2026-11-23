@@ -63,3 +63,20 @@ test("local calendar dates become UTC bounds for MongoDB filtering", () => {
     .toBe(new Date(2026, 10, 22, 23, 59, 59, 999).toISOString());
   expect(() => localDayBoundary("2026-02-30")).toThrow();
 });
+
+test("display decimation retains peaks, gaps, and chronological endpoints", () => {
+  const data = Array.from({ length: 4374 }, (_, i) => ({
+    t: i / 25, red: i === 791 ? 100000 : 200 + (i % 10),
+    ir: i === 2777 ? -100000 : 250 + (i % 7)
+  }));
+  data[1820].red = null;
+  data[1820].ir = null;
+  const display = decimate(data, 1200, ["red", "ir"]);
+  expect(display.length).toBeLessThanOrEqual(1200);
+  expect(display[0]).toBe(data[0]);
+  expect(display[display.length - 1]).toBe(data[data.length - 1]);
+  expect(display.some((p) => p.red === 100000)).toBe(true);
+  expect(display.some((p) => p.ir === -100000)).toBe(true);
+  expect(display.some((p) => p.red === null && p.ir === null)).toBe(true);
+  expect(display.every((p, i) => i === 0 || p.t > display[i - 1].t)).toBe(true);
+});

@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Box, Button, Checkbox, FormControlLabel, Grid,
   Typography, CircularProgress } from "@mui/material";
 import SelectComponent from "../select";
@@ -9,9 +9,9 @@ import { SignalChart } from "./SignalChart";
 
 const signals = [
   ["flow", "Fluxo respiratório"],
-  ["bpm", "BPM experimental"],
-  ["spo2", "SpO₂ DEMO"],
-  ["ppg", "RED / IR"]
+  ["bpm", "Frequência cardíaca"],
+  ["spo2", "SpO₂ (DEMO)"],
+  ["ppg", "PPG (RED / IR)"]
 ];
 
 export default function Pitaco3ResultsPanel({ patientId, dataIni, dataFim, reloadKey }) {
@@ -22,8 +22,11 @@ export default function Pitaco3ResultsPanel({ patientId, dataIni, dataFim, reloa
   const [loadingSignals, setLoadingSignals] = useState(false);
   const [error, setError] = useState("");
   const [visible, setVisible] = useState(["flow", "bpm", "spo2", "ppg"]);
-  const [onlyApproved, setOnlyApproved] = useState(false);
+  const [quality, setQuality] = useState("all");
+  const flowCache = useRef(new Map());
   const [showReference, setShowReference] = useState(true);
+
+  useEffect(() => { flowCache.current.clear(); }, [patientId]);
 
   useEffect(() => {
     let alive = true;
@@ -47,17 +50,32 @@ export default function Pitaco3ResultsPanel({ patientId, dataIni, dataFim, reloa
   useEffect(() => {
     let alive = true;
     setDocument(null);
-    if (!stage || !stage.flowDataDevicesId) return () => { alive = false; };
+    if (!stage || !stage.flowDataDevicesId) {
+      setLoadingSignals(false);
+      return () => { alive = false; };
+    }
+    const id = String(stage.flowDataDevicesId);
+    const cache = flowCache.current;
+    if (cache.has(id)) {
+      setDocument(cache.get(id));
+      setLoadingSignals(false);
+      return () => { alive = false; };
+    }
     setLoadingSignals(true); setError("");
-    getPitaco3Flow(String(stage.flowDataDevicesId)).then((flow) => {
-      if (alive) setDocument(flow);
+    getPitaco3Flow(id).then((flow) => {
+      if (alive) {
+        // Cache per selected patient only; limit memory use to five sessions.
+        if (cache.size >= 5) cache.delete(cache.keys().next().value);
+        cache.set(id, flow);
+        setDocument(flow);
+      }
     }).catch((e) => { if (alive) setError(e.message || "Falha ao carregar sinais."); })
       .finally(() => { if (alive) setLoadingSignals(false); });
     return () => { alive = false; };
   }, [stageId, stages]);
 
-  const series = useMemo(() => buildSignalSeries(document, stage || {}, onlyApproved),
-    [document, stage, onlyApproved]);
+  const series = useMemo(() => buildSignalSeries(document, stage || {}, quality === "approved"),
+    [document, stage, quality]);
   const toggle = (key) => setVisible((previous) => previous.includes(key)
     ? previous.filter((v) => v !== key) : [...previous, key]);
 
@@ -66,9 +84,6 @@ export default function Pitaco3ResultsPanel({ patientId, dataIni, dataFim, reloa
   return (
     <Box sx={{ mt: 3, color: "#11192A" }}>
       <Typography variant="h6" sx={{ mb: 1 }}>Sinais da execução — PITACO 3.0</Typography>
-      <Typography variant="body2" sx={{ mb: 2 }}>
-        Os registros são experimentais. A escolha dos filtros não modifica os dados no Atlas.
-      </Typography>
       {loadingHistory ? <CircularProgress size={26} /> : (
         <Box sx={{ maxWidth: 650, mb: 2 }}>
           <SelectComponent title="Execução" initialKey={stageId}
@@ -102,20 +117,17 @@ export default function Pitaco3ResultsPanel({ patientId, dataIni, dataFim, reloa
             </Grid>
           ))}
         </Grid>
-        <FormControlLabel control={<Checkbox checked={onlyApproved}
-          onChange={(e) => setOnlyApproved(e.target.checked)} />}
-          label="Filtrar estimativas por aprovação técnica (contato e G1)" />
-        <Typography variant="caption" sx={{ display: "block", mb: 1 }}>
-          No PPG bruto, o filtro exige contato e SQI sem motivo de rejeição; o fluxo
-          respiratório não possui essas flags. Lacunas permanecem visíveis.
-        </Typography>
+        <Box sx={{ width: { xs: "100%", sm: 280 }, mt: 1.5, mb: 1 }}>
+          <SelectComponent title="Qualidade das amostras" initialKey={quality}
+            handleChangeCallBack={setQuality}
+            items={[
+              { key: "all", value: "Todas as amostras" },
+              { key: "approved", value: "Somente leituras aprovadas" }
+            ]} />
+        </Box>
         <FormControlLabel control={<Checkbox checked={showReference}
           onChange={(e) => setShowReference(e.target.checked)} />}
-          label="Exibir faixas didáticas fixas: BPM 60–100 em repouso e SpO₂ 95–100% (oxímetros validados)" />
-        <Typography variant="caption" sx={{ display: "block", color: "#825e12" }}>
-          Essas faixas são apenas comparações ilustrativas e não limites de segurança.
-          Durante exercício, os valores dependem do paciente; a SpO₂ DEMO não é calibrada.
-        </Typography>
+          label="Exibir faixas de referência" />
       </Box>
       {error && <Typography color="error" role="alert">{error}</Typography>}
       {loadingSignals && <CircularProgress size={26} />}
