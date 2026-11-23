@@ -59,7 +59,7 @@ export default function PlatformComparative() {
 
   return (
     <Box>
-      <Typography variant="h2" sx={{ fontSize: 20, fontWeight: "bold", mt: 1 }}>
+      <Typography variant="h2" sx={{ fontSize: 20, fontWeight: "bold", color: "#11192A", mt: 1 }}>
         Plataforma — Comparativos
       </Typography>
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "end", mt: 3 }}>
