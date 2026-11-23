@@ -1,7 +1,7 @@
 import React from "react";
 import { Box, Typography } from "@mui/material";
 import { CartesianGrid, Line, LineChart, Legend, ResponsiveContainer,
-  Tooltip, XAxis, YAxis, ReferenceLine } from "recharts";
+  Tooltip, XAxis, YAxis } from "recharts";
 
 // All data must come from the API; never render randomized sample values.
 const PlatformGraphComparative = ({ tableLegend_Y, graphData = [], viewType }) => {
