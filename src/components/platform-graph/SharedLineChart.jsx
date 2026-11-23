@@ -23,14 +23,16 @@ export default function SharedLineChart({
     );
   }
 
-  const measured = data.reduce((numbers, point) => {
-    lines.forEach((line) => {
-      if (validNumber(point[line.key])) numbers.push(point[line.key]);
-    });
-    return numbers;
-  }, []);
-  const min = Math.min(...measured, ...(reference ? [reference.lower] : []));
-  const max = Math.max(...measured, ...(reference ? [reference.upper] : []));
+  // Streaming min/max avoids a large spread call for dense respiratory data.
+  let min = reference ? reference.lower : Infinity;
+  let max = reference ? reference.upper : -Infinity;
+  data.forEach((point) => lines.forEach((line) => {
+    const value = point[line.key];
+    if (validNumber(value)) {
+      min = Math.min(min, value);
+      max = Math.max(max, value);
+    }
+  }));
   const gap = Math.max((max - min) * 0.05, 1);
   const domain = [min - gap, max + gap];
 
