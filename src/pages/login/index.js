@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { makeStyles } from "@mui/styles";
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
-import MaterialLink from '@mui/material/Link';
-import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
@@ -138,13 +136,9 @@ const LoginPage = () => {
           >
             Entrar
           </Button>
-          <Grid container>
-            <Grid item>
-              <MaterialLink color='#11192A' to={pathRoutes.SIGN_UP} variant="body2" component={Link}>
-                {"Criar Conta I BLUE IT!"}
-              </MaterialLink>
-            </Grid>
-          </Grid>
+          <Typography variant="body2" sx={{ mt: 2, color: '#11192A' }}>
+            Para criar uma conta, solicite acesso a um administrador autorizado.
+          </Typography>
         </Box>
       </Box>
       <Copyright sx={{ mt: 8, mb: 4 }} />
