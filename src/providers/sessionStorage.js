@@ -1,49 +1,48 @@
-// Transitional user session state. The server is authoritative for permissions.
-const KEY = 'userCredentials';
-const read = () => {
-  try {
-    const raw = sessionStorage.getItem(KEY);
-    const parsed = raw ? JSON.parse(raw) : null;
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-      ? parsed : null;
-  } catch (_) {
-    sessionStorage.removeItem(KEY);
-    return null;
+const saveAuthenticationData = (dataOfRequest) => {
+  const dataToSave = (dataOfRequest.data && dataOfRequest.data.data)
+    ? JSON.stringify(dataOfRequest.data.data)
+    : '';
+  sessionStorage.setItem('userCredentials', dataToSave);
+}
+
+const isAuthenticated = () => {
+  const storedUserCredentials = sessionStorage.getItem('userCredentials');
+  const userCredentials = (storedUserCredentials)
+    ? JSON.parse(storedUserCredentials)
+    : undefined;
+
+  if (!storedUserCredentials || !userCredentials) return false;
+  if (!validateUserCredentials(userCredentials)) return false;
+  return true;
+}
+
+const validateUserCredentials = (userCredentials) => {
+  const keysNeeded = ['fullname', 'gameToken', 'userId', 'authExpirationTime', 'authTime'];
+  const keys = Object.keys(userCredentials);
+  return keysNeeded.every(elem => keys.indexOf(elem) >= 0);
+}
+
+const getTokenParameters = (Parameter = null) => {
+  if (Parameter) {
+    return JSON.parse(sessionStorage.getItem("userCredentials" || '{}'))[Parameter];
   }
-};
-const saveAuthenticationData = (response) => {
-  const value = response && response.data && response.data.data;
-  if (value && typeof value.sessionToken === 'string' && value.sessionToken) {
-    sessionStorage.setItem(KEY, JSON.stringify(value));
-  } else {
-    sessionStorage.removeItem(KEY);
-  }
-};
-const validateUserCredentials = (data) => Boolean(
-  data && data.userId && data.role && data.sessionToken &&
-  typeof data.sessionToken === 'string' && data.authExpirationTime &&
-  Number.isFinite(Date.parse(data.authExpirationTime)) &&
-  Date.parse(data.authExpirationTime) > Date.now()
-);
-const isAuthenticated = () => validateUserCredentials(read());
-const getTokenParameters = (parameter = null) => {
-  const data = read();
-  if (!data) return null;
-  return parameter ? (data[parameter] ?? null) : data;
-};
-const getAuthorizationHeaders = () => {
-  const token = getTokenParameters('sessionToken');
-  return token && isAuthenticated() ? { Authorization: `Bearer ${token}` } : {};
-};
-const updateAuthenticationData = (parameter, value) => {
-  const data = read();
-  if (!data || !parameter) return;
-  data[parameter] = value;
-  sessionStorage.setItem(KEY, JSON.stringify(data));
-};
-const removerAuthenticationData = () => sessionStorage.removeItem(KEY);
+  return JSON.parse(sessionStorage.getItem("userCredentials" || '{}'));
+}
+
+const updateAuthenticationData = (Parameter, valueParameter) => {
+  const data = getTokenParameters();
+  data[Parameter] = valueParameter;
+  sessionStorage.setItem('userCredentials', JSON.stringify(data));
+}
+
+const removerAuthenticationData = () => {
+  sessionStorage.clear();
+}
+
 export {
-  saveAuthenticationData, removerAuthenticationData, isAuthenticated,
-  getTokenParameters, getAuthorizationHeaders, updateAuthenticationData,
-  validateUserCredentials
-};
+  saveAuthenticationData,
+  removerAuthenticationData,
+  isAuthenticated,
+  getTokenParameters,
+  updateAuthenticationData,
+}
