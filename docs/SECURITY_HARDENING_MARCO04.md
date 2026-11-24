@@ -26,3 +26,5 @@ Ainda não concluído: autorização de usuário final por paciente em **todas**
 3. Homologar uma conta User de paciente e impedir acesso a registros de outros pacientes.
 4. Verificar gráficos PITACO 3.0 (fluxo, BPM, SpO₂ DEMO, RED/IR), filtros e histórico.
 5. Coordenar versões de backend/frontend durante deploy Azure. Não desativar rulesets ou checks Sonar.
+
+A camada `services/api/attachSession.js` configura o Axios para anexar a sessão nas requisições dirigidas ao endpoint BaseUrl da API. O cabeçalho não é enviado a domínios externos. As consultas de paciente do backend endurecido passam a exigir a sessão, não apenas GameToken.
