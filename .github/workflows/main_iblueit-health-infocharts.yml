@@ -78,9 +78,11 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_B7166FAAD3984C56857386372E97440E }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_12CFF9B06D364702A3059C05FAEE9266 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_28ED665703DB47CCA84F2991597859A5 }}
+          # Prefer the new Azure Deployment Center OIDC identity when configured.
+          # Keep historical secrets as fallback until the new federation is verified.
+          client-id: ${{ secrets.AZURE_CLIENT_ID || secrets.AZUREAPPSERVICE_CLIENTID_B7166FAAD3984C56857386372E97440E }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID || secrets.AZUREAPPSERVICE_TENANTID_12CFF9B06D364702A3059C05FAEE9266 }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID || secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_28ED665703DB47CCA84F2991597859A5 }}
 
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
