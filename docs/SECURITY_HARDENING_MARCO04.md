@@ -28,3 +28,5 @@ Ainda não concluído: autorização de usuário final por paciente em **todas**
 5. Coordenar versões de backend/frontend durante deploy Azure. Não desativar rulesets ou checks Sonar.
 
 A camada `services/api/attachSession.js` configura o Axios para anexar a sessão nas requisições dirigidas ao endpoint BaseUrl da API. O cabeçalho não é enviado a domínios externos. As consultas de paciente do backend endurecido passam a exigir a sessão, não apenas GameToken.
+
+Ao sair, o menu de conta chama `POST /logout` com a sessão atual e remove a sessão local mesmo se a conexão estiver indisponível. A API com revogação está no PR #7 do backend.
