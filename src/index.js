@@ -7,6 +7,7 @@ import "@fontsource/roboto/700.css";
 import reportWebVitals from "./reportWebVitals";
 import CssBaseline from "@mui/material/CssBaseline";
 import App from "./app";
+import "./services/api/attachSession";
 import {MyContext} from "./providers/MyContext";
 
 ReactDOM.render(

@@ -11,10 +11,10 @@ import KeyIcon from '@mui/icons-material/Key';
 
 import { useMyContext } from "../../providers/MyContext";
 import {
-  removerAuthenticationData, isAuthenticated,
-  getTokenParameters
+  isAuthenticated, getTokenParameters
 } from '../../providers/sessionStorage';
 import { pathRoutes } from "../../providers/Routes.jsx";
+import { postLogout } from "../../services/authentication";
 
 
 const useStyles = makeStyles((theme) => ({
@@ -34,9 +34,9 @@ const AccountMenu = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const openAccountMenu = Boolean(anchorEl);
 
-  const methodOfLogout = () => {
+  const methodOfLogout = async () => {
     try {
-      removerAuthenticationData();
+      await postLogout();
       if (!isAuthenticated()) {
         setAnchorEl(null)
         navigate(pathRoutes.LOGIN)

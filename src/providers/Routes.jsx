@@ -50,7 +50,7 @@ const routes = [{
 	path: pathRoutes.SIGN_UP,
 	title: 'Registrar-se',
 	component: () => (<SignUp />),
-	privated: false,
+	privated: true,
 }, {
 	path: pathRoutes.HISTORICAL_CALIBRATION,
 	title: 'Historico de calibracao',

@@ -13,11 +13,10 @@ import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputLabel from '@mui/material/InputLabel';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 
 import { useMyContext } from "../../providers/MyContext";
 import { getTokenParameters } from "../../providers/sessionStorage";
-import { getPatientAccount } from "../../services/api/patientAccount";
+import { getPatientAccount, resetPatientPassword } from "../../services/api/patientAccount";
 import { requestRegisterUsers } from '../../services/api/signUp';
 
 
@@ -57,7 +56,8 @@ const PatientAccount = () => {
 
     setThereIsAccount(!!patientAccount)
     setUser((patientAccount && patientAccount.username) ? patientAccount.username : '')
-    setPassword((patientAccount && patientAccount.password) ? patientAccount.password : '')
+    setPassword('');
+    setConfirmPassword('');
   }
 
 
@@ -85,10 +85,22 @@ const PatientAccount = () => {
     }
   };
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(`Usuário: ${user} Senha: ${password}`);
-    context.addNotification('success',  'Usuário e Senha copiados');
-  }
+  const handleResetPassword = async (event) => {
+    event.preventDefault();
+    if (password !== confirmPassword) {
+      context.addNotification('error', 'Senhas diferentes');
+      return;
+    }
+    if (!context.patientId || password.length < 12) {
+      context.addNotification('error', 'Informe uma nova senha de pelo menos 12 caracteres.');
+      return;
+    }
+    try {
+      await resetPatientPassword(context, context.patientId, password);
+      setPassword('');
+      setConfirmPassword('');
+    } catch (_) { /* A notificação é exibida pelo serviço. */ }
+  };
 
   return (
     <Box
@@ -105,49 +117,29 @@ const PatientAccount = () => {
 
         {thereIsAccount ? (
           <>
-            <Typography component="h5" variant="h5" sx={{ fontSize: 18, marginTop: 5 }} >
-              Atenção esses dados abaixo dão acesso a conta do(a) usuário(a) {context.patientName}
+            <Typography component="h5" variant="h5" sx={{ fontSize: 18, marginTop: 5 }}>
+              Conta do(a) paciente {context.patientName}
             </Typography>
-
-            <Box sx={{ marginTop: 2 }}>
-              <TextField
-                disabled
-                fullWidth
-                label="Usuário"
-                margin="normal"
-                type='user'
-                name="user"
-                id='user'
-                color="borderInput"
-                InputProps={{ classes: { input: classes.input } }}
-                value={user}
-              />
-
-              <TextField
-                disabled
-                fullWidth
-                label="Senha"
-                type='text'
-                margin="normal"
-                name="password"
-                id='password'
-                color="borderInput"
-                InputProps={{ classes: { input: classes.input } }}
-                value={password}
-              />
+            <TextField disabled fullWidth label="Usuário" margin="normal"
+              value={user} InputProps={{ classes: { input: classes.input } }} />
+            <Typography variant="body2" sx={{ mt: 1.5 }}>
+              Por segurança, a senha atual não pode ser consultada nem copiada.
+              O administrador pode definir uma nova senha abaixo.
+            </Typography>
+            <Box component="form" onSubmit={handleResetPassword}>
+              <TextField required fullWidth label="Nova senha" margin="normal"
+                type={passwordVisibility ? 'text' : 'password'} autoComplete="new-password"
+                inputProps={{ minLength: 12, maxLength: 128 }}
+                value={password} onChange={(e) => setPassword(e.target.value)} />
+              <TextField required fullWidth label="Confirmar nova senha" margin="normal"
+                type={confirmPasswordVisibility ? 'text' : 'password'}
+                autoComplete="new-password" inputProps={{ minLength: 12, maxLength: 128 }}
+                value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+              <Button type="submit" fullWidth variant="contained" sx={{ mt: 2, mb: 2 }}
+                className={classes.button} disabled={context.loading}>
+                Redefinir senha do paciente
+              </Button>
             </Box>
-
-            <Button
-              fullWidth
-              type="button"
-              variant="contained"
-              sx={{ mt: 3, mb: 2 }}
-              className={classes.button}
-              onClick={copyToClipboard}
-            >
-              <ContentCopyIcon sx={{ marginRight: 2 }} />
-              copiar Usuário e Senha
-            </Button>
           </>
         ) : (
           <>

@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 import { BaseUrl } from '../providers/_config';
-import { saveAuthenticationData } from '../providers/sessionStorage';
+import { saveAuthenticationData, removerAuthenticationData, getAuthorizationHeaders } from '../providers/sessionStorage';
 import { extractMessage } from '../components/notification';
 
 
@@ -20,6 +20,21 @@ const postAuthentication = async (context, username, password) => {
   }
 }
 
+
+const postLogout = async () => {
+  const headers = getAuthorizationHeaders();
+  try {
+    if (headers.Authorization) {
+      await axios.post(`${BaseUrl()}/logout`, {}, { headers, timeout: 3000 });
+    }
+  } catch (_) {
+    // Local session is invalidated regardless; remote token expires automatically.
+  } finally {
+    removerAuthenticationData();
+  }
+};
+
 export {
   postAuthentication,
+  postLogout,
 };
